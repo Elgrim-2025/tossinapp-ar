@@ -488,6 +488,7 @@
         let camera = null;
         let renderer = null;
         let hudMesh = null;
+        let shadowMesh = null;
         let hudTexture = null;
         let hudMeshBaseScale = 1.0;
         let isRunning = false;
@@ -695,6 +696,19 @@
                     hudMeshBaseScale = 1.0;
                     hudMesh.scale.set(1, 1, 1);
 
+                    // 그림자 생성 (타원형)
+                    const shadowGeometry = new THREE.CircleGeometry(width * 0.4, 32);
+                    const shadowMaterial = new THREE.MeshBasicMaterial({
+                        color: 0x000000,
+                        transparent: true,
+                        opacity: 0.3,
+                        depthWrite: false,
+                    });
+                    shadowMesh = new THREE.Mesh(shadowGeometry, shadowMaterial);
+                    shadowMesh.scale.set(1, 0.3, 1); // 타원형으로 찌그러뜨림
+                    shadowMesh.position.set(0, -height * 0.55, -1.51); // 이미지 아래, 약간 뒤에
+
+                    camera.add(shadowMesh);
                     camera.add(hudMesh);
 
                     console.log('[AR] 이미지 로딩 완료:', img.width, 'x', img.height);
@@ -758,11 +772,21 @@
                     const scale = screenPixelToLocal();
                     hudMesh.position.x = gesture.objStartX + dx * scale;
                     hudMesh.position.y = gesture.objStartY - dy * scale;
+                    // 그림자 위치 업데이트
+                    if (shadowMesh) {
+                        shadowMesh.position.x = hudMesh.position.x;
+                        shadowMesh.position.y = hudMesh.position.y - 0.275 * hudMeshBaseScale;
+                    }
                 } else if (gesture.isPinching && e.touches.length === 2) {
                     const dist = getTouchDistance(e.touches);
                     const ratio = dist / gesture.pinchStartDist;
                     hudMeshBaseScale = Math.max(0.3, Math.min(5.0, gesture.pinchStartScale * ratio));
                     hudMesh.scale.set(hudMeshBaseScale, hudMeshBaseScale, hudMeshBaseScale);
+                    // 그림자 크기 업데이트
+                    if (shadowMesh) {
+                        shadowMesh.scale.set(hudMeshBaseScale, 0.3 * hudMeshBaseScale, hudMeshBaseScale);
+                        shadowMesh.position.y = hudMesh.position.y - 0.275 * hudMeshBaseScale;
+                    }
                 }
             }, { passive: false });
 
@@ -798,6 +822,11 @@
                 const scale = screenPixelToLocal();
                 hudMesh.position.x = gesture.objStartX + dx * scale;
                 hudMesh.position.y = gesture.objStartY - dy * scale;
+                // 그림자 위치 업데이트
+                if (shadowMesh) {
+                    shadowMesh.position.x = hudMesh.position.x;
+                    shadowMesh.position.y = hudMesh.position.y - 0.275 * hudMeshBaseScale;
+                }
             });
 
             touchArea.addEventListener('mouseup', () => { mouseDown = false; });
@@ -810,6 +839,11 @@
                 const delta = e.deltaY > 0 ? 0.9 : 1.1;
                 hudMeshBaseScale = Math.max(0.3, Math.min(5.0, hudMeshBaseScale * delta));
                 hudMesh.scale.set(hudMeshBaseScale, hudMeshBaseScale, hudMeshBaseScale);
+                // 그림자 크기 업데이트
+                if (shadowMesh) {
+                    shadowMesh.scale.set(hudMeshBaseScale, 0.3 * hudMeshBaseScale, hudMeshBaseScale);
+                    shadowMesh.position.y = hudMesh.position.y - 0.275 * hudMeshBaseScale;
+                }
             }, { passive: false });
 
             // 버튼 이벤트
