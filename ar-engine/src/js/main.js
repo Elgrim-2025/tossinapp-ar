@@ -1,21 +1,18 @@
 /**
- * AR Vision - 3 Layer AR System
+ * AR Vision - 이미지 배경 제거 + AR 표시 시스템
  *
  * Layer 1: Background (현실 세계) - 카메라 비디오
  * Layer 2: Virtual (가상 객체) - Three.js 3D 렌더링 (투명 배경)
  * Layer 3: Compositing (합성) - 알파 블렌딩으로 실시간 합성
  *
- * iOS 13+ Safari / Android Chrome 공통 지원
- * 사용자 제스처를 통한 권한 요청 필수
- *
- * Wasm SLAM과 Three.js 카메라 연동
+ * 동작 흐름:
+ * 이미지 업로드 → MediaPipe 세그멘테이션 → 배경 초록색 대체 → 크로마키 제거 → AR 표시
  */
 
 import * as THREE from 'three';
-import { CameraPoseManager, ARObjectPlacer } from './CameraPoseManager.js';
-
-// Visual Odometry는 동적 로드 (Wasm 빌드 후 사용 가능)
-let VisualOdometry = null;
+import { CameraPoseManager } from './CameraPoseManager.js';
+import { ImageProcessor } from './ImageProcessor.js';
+import { ImageUploadUI } from './ImageUploadUI.js';
 
 class ARApp {
     constructor() {
@@ -27,23 +24,15 @@ class ARApp {
         this.camera = null;
         this.renderer = null;
 
-        // === SLAM / Pose ===
-        this.visualOdometry = null;      // Wasm Visual Odometry
+        // === 이미지 처리 ===
+        this.imageProcessor = null;      // MediaPipe 이미지 프로세서
+        this.imageUploadUI = null;       // 이미지 업로드 UI
         this.cameraPoseManager = null;   // Three.js 카메라 매니저
-        this.objectPlacer = null;        // AR 객체 배치 헬퍼
 
-        // === AR Objects ===
-        this.cubes = [];
-        this.originCube = null;          // 바닥 원점의 빨간 큐브
-        this.floorGrid = null;           // 바닥 그리드
-        this.axesHelper = null;          // 축 헬퍼
-
-        // === HUD 오브젝트 (화면에 붙어다니는 영상) ===
-        this.hudCube = null;             // 화면에 고정된 메시
-        this.hudCubeBaseScale = 1.0;     // 핀치 기준 스케일
-        this.hudVideo = null;            // webm 비디오 엘리먼트
-        this.hudVideoTexture = null;     // VideoTexture
-        this.currentVideoSrc = 'changi-chroma.mp4'; // 현재 영상 소스
+        // === HUD 오브젝트 (화면에 붙어다니는 이미지) ===
+        this.hudMesh = null;             // 화면에 고정된 메시
+        this.hudMeshBaseScale = 1.0;     // 핀치 기준 스케일
+        this.hudTexture = null;          // 이미지 텍스처
 
         // === 제스처 상태 ===
         this.gesture = {
@@ -64,56 +53,54 @@ class ARApp {
         this.initialOrientation = null;
         this.useGyroscope = false;
 
-        // === 모드 ===
-        this.trackingMode = 'sensor';    // 'sensor' | 'slam' | 'hybrid'
-
         // === State ===
         this.isRunning = false;
         this.isReady = false;
 
-        // === 프레임 처리용 Canvas ===
-        this.processCanvas = null;
-        this.processCtx = null;
-
-        console.log('[AR] 3-Layer AR System 초기화');
+        console.log('[AR] 이미지 배경 제거 AR 시스템 초기화');
     }
 
     /**
      * 권한이 이미 승인된 후 호출되는 초기화 함수
-     * (시작 버튼 클릭 → 권한 승인 → 이 함수 호출)
      */
     async init() {
         console.log('========================================');
-        console.log('    AR Vision - 3 Layer System');
+        console.log('    AR Vision - 이미지 배경 제거 AR');
         console.log('========================================');
 
         try {
-            // Step 1: Layer 1 - 카메라 비디오 초기화 (이미 권한 승인됨)
-            window.updateLoadingProgress(30, '카메라 연결 중...');
+            // Step 1: Layer 1 - 카메라 비디오 초기화
+            window.updateLoadingProgress?.(20, '카메라 연결 중...');
             await this.initBackgroundLayer();
 
             // Step 2: Layer 2 - Three.js 가상 레이어 초기화
-            window.updateLoadingProgress(60, '3D 엔진 초기화...');
+            window.updateLoadingProgress?.(40, '3D 엔진 초기화...');
             this.initVirtualLayer();
 
-            // Step 3: 센서 리스너 등록 (권한은 이미 승인됨)
-            window.updateLoadingProgress(80, '센서 연결 중...');
+            // Step 3: MediaPipe 이미지 프로세서 초기화
+            window.updateLoadingProgress?.(60, 'MediaPipe 로딩...');
+            await this.initImageProcessor();
+
+            // Step 3.5: 이미지 업로드 UI 생성
+            window.updateLoadingProgress?.(70, 'UI 생성...');
+            this.initImageUploadUI();
+
+            // Step 4: 센서 리스너 등록
+            window.updateLoadingProgress?.(80, '센서 연결 중...');
             this.initSensors();
 
-            // Step 4: 이벤트 설정
-            window.updateLoadingProgress(90, '이벤트 설정...');
+            // Step 5: 이벤트 설정
+            window.updateLoadingProgress?.(90, '이벤트 설정...');
             this.setupEvents();
 
             // 완료
-            window.updateLoadingProgress(100, '완료!');
+            window.updateLoadingProgress?.(100, '완료!');
             this.isRunning = true;
             this.isReady = true;
 
             setTimeout(() => {
-                window.hideLoadingScreen();
-                // 초기 HUD 큐브 자동 배치
-                this.placeCube();
-                // 안내 오버레이 표시 (터치 시 사라짐)
+                window.hideLoadingScreen?.();
+                // 안내 오버레이 표시
                 if (window.showInstruction) window.showInstruction();
                 console.log('========================================');
                 console.log('          AR 준비 완료!');
@@ -131,7 +118,6 @@ class ARApp {
 
     /**
      * Layer 1: Background - 카메라 비디오
-     * 권한은 index.html에서 이미 승인됨
      */
     async initBackgroundLayer() {
         console.log('[Layer1] 카메라 비디오 연결');
@@ -146,7 +132,6 @@ class ARApp {
             console.log('[Layer1] 기존 카메라 스트림 사용');
             this.video.srcObject = window.cameraStream;
 
-            // 비디오가 아직 재생 중이 아니면 재생 시작
             if (this.video.paused) {
                 this.video.muted = true;
                 this.video.playsInline = true;
@@ -157,7 +142,7 @@ class ARApp {
             return true;
         }
 
-        // 폴백: 직접 권한 요청 (데스크탑 등에서)
+        // 폴백: 직접 권한 요청
         console.log('[Layer1] 카메라 스트림 직접 요청');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -194,8 +179,7 @@ class ARApp {
 
         // Scene
         this.scene = new THREE.Scene();
-        // 배경을 완전 투명하게 (Layer 1이 비쳐 보이도록)
-        this.scene.background = null;
+        this.scene.background = null;  // 투명 배경
 
         // Camera
         this.camera = new THREE.PerspectiveCamera(
@@ -205,23 +189,23 @@ class ARApp {
             1000
         );
         this.camera.position.set(0, 0, 0);
-        this.scene.add(this.camera); // 카메라 자식 오브젝트 렌더링을 위해 씬에 추가
+        this.scene.add(this.camera);
 
-        // Renderer - 투명 배경 필수!
+        // Renderer - 투명 배경
         this.renderer = new THREE.WebGLRenderer({
             antialias: true,
-            alpha: true,           // 투명 배경
+            alpha: true,
             premultipliedAlpha: false,
-            preserveDrawingBuffer: true  // 캡처/녹화용
+            preserveDrawingBuffer: true
         });
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setClearColor(0x000000, 0); // 완전 투명
+        this.renderer.setClearColor(0x000000, 0);
         this.renderer.domElement.style.position = 'absolute';
         this.renderer.domElement.style.top = '0';
         this.renderer.domElement.style.left = '0';
         this.renderer.domElement.style.zIndex = '1';
-        this.renderer.domElement.style.pointerEvents = 'none'; // 클릭 통과
+        this.renderer.domElement.style.pointerEvents = 'none';
 
         container.appendChild(this.renderer.domElement);
 
@@ -233,83 +217,54 @@ class ARApp {
         directional.position.set(1, 2, 1);
         this.scene.add(directional);
 
-        // === CameraPoseManager 초기화 ===
+        // CameraPoseManager 초기화
         this.cameraPoseManager = new CameraPoseManager(this.camera);
-        this.cameraPoseManager.setSmoothing(true, 0.2);  // 부드러운 움직임
-
-        // === ARObjectPlacer 초기화 ===
-        this.objectPlacer = new ARObjectPlacer(this.scene, this.camera);
-
-        // 원점 마커 제거됨 (HUD 모드 사용)
+        this.cameraPoseManager.setSmoothing(true, 0.2);
 
         console.log('[Layer2] Three.js 준비 완료');
     }
 
     /**
-     * 바닥 원점에 빨간 큐브 배치
+     * MediaPipe 이미지 프로세서 초기화
      */
-    setupOriginMarker() {
-        // 빨간 큐브 생성 (10cm x 10cm x 10cm)
-        const cubeSize = 0.1;
-        const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-        const material = new THREE.MeshPhongMaterial({
-            color: 0xff0000,
-            shininess: 100,
-            transparent: true,
-            opacity: 0.9
+    async initImageProcessor() {
+        console.log('[ImageProcessor] MediaPipe 초기화');
+
+        this.imageProcessor = new ImageProcessor();
+        await this.imageProcessor.init();
+
+        console.log('[ImageProcessor] 초기화 완료');
+    }
+
+    /**
+     * 이미지 업로드 UI 초기화
+     */
+    initImageUploadUI() {
+        console.log('[ImageUploadUI] UI 초기화');
+
+        this.imageUploadUI = new ImageUploadUI({
+            containerId: 'image-upload-container',
+            onImageSelected: (file) => this.processAndPlaceImage(file),
+            showPreview: true,
         });
-        this.originCube = new THREE.Mesh(geometry, material);
 
-        // 바닥 (y=0)에 맞추어 배치 (큐브 중심이 바닥 위에 오도록)
-        this.originCube.position.set(0, cubeSize / 2, 0);
-        this.scene.add(this.originCube);
+        this.imageUploadUI.create();
 
-        // 바닥 그리드 (2m x 2m, 20칸)
-        this.floorGrid = new THREE.GridHelper(2, 20, 0x00ff88, 0x004422);
-        this.floorGrid.position.y = 0;
-        this.scene.add(this.floorGrid);
-
-        // 축 헬퍼 (X=빨강, Y=초록, Z=파랑)
-        this.axesHelper = new THREE.AxesHelper(0.5);
-        this.axesHelper.position.set(0, 0.001, 0);  // 그리드 위에
-        this.scene.add(this.axesHelper);
-
-        console.log('[Layer2] 원점 마커 배치 완료 (빨간 큐브 @ 0,0,0)');
+        console.log('[ImageUploadUI] UI 생성 완료');
     }
 
     /**
      * 센서 초기화 (DeviceOrientation)
-     * 권한은 index.html에서 이미 승인됨
      */
     initSensors() {
         console.log('[Sensor] 센서 리스너 등록');
 
-        // 센서 권한이 승인되었는지 확인
         if (window.sensorPermissionGranted !== false) {
             this.useGyroscope = true;
         }
 
-        // DeviceOrientation 리스너 등록 (iOS/Android 공통)
         window.addEventListener('deviceorientation', (e) => this.onDeviceOrientation(e), true);
         console.log('[Sensor] DeviceOrientation 리스너 등록됨');
-
-        // DeviceMotion 리스너도 등록 (가속도계)
-        window.addEventListener('devicemotion', (e) => this.onDeviceMotion(e), true);
-        console.log('[Sensor] DeviceMotion 리스너 등록됨');
-    }
-
-    /**
-     * DeviceMotion 이벤트 핸들러 (가속도계)
-     */
-    onDeviceMotion(event) {
-        // 가속도 데이터 (나중에 SLAM에서 사용)
-        if (event.acceleration) {
-            this.acceleration = {
-                x: event.acceleration.x || 0,
-                y: event.acceleration.y || 0,
-                z: event.acceleration.z || 0
-            };
-        }
     }
 
     /**
@@ -324,7 +279,6 @@ class ARApp {
             gamma: event.gamma
         };
 
-        // 초기 방향 저장
         if (!this.initialOrientation) {
             this.initialOrientation = { ...this.deviceOrientation };
             console.log('[Sensor] 초기 방향 저장:', this.initialOrientation);
@@ -343,119 +297,93 @@ class ARApp {
             return;
         }
 
-        // 더블탭으로 큐브 배치/제거
-        let lastTap = 0;
-
         // === 터치 이벤트 (모바일) ===
         touchArea.addEventListener('touchstart', (e) => {
             e.preventDefault();
 
-            if (e.touches.length === 1 && this.hudCube) {
-                // 한 손가락: 드래그 시작
+            if (e.touches.length === 1 && this.hudMesh) {
                 this.gesture.isDragging = true;
                 this.gesture.isPinching = false;
                 this.gesture.dragStartX = e.touches[0].clientX;
                 this.gesture.dragStartY = e.touches[0].clientY;
-                this.gesture.objStartX = this.hudCube.position.x;
-                this.gesture.objStartY = this.hudCube.position.y;
-            } else if (e.touches.length === 2 && this.hudCube) {
-                // 두 손가락: 핀치 시작
+                this.gesture.objStartX = this.hudMesh.position.x;
+                this.gesture.objStartY = this.hudMesh.position.y;
+            } else if (e.touches.length === 2 && this.hudMesh) {
                 this.gesture.isDragging = false;
                 this.gesture.isPinching = true;
                 this.gesture.pinchStartDist = this.getTouchDistance(e.touches);
-                this.gesture.pinchStartScale = this.hudCubeBaseScale;
+                this.gesture.pinchStartScale = this.hudMeshBaseScale;
             }
         }, { passive: false });
 
         touchArea.addEventListener('touchmove', (e) => {
             e.preventDefault();
-            if (!this.hudCube) return;
+            if (!this.hudMesh) return;
 
             if (this.gesture.isDragging && e.touches.length === 1) {
-                // 드래그: 화면 좌표 → 카메라 로컬 좌표
                 const dx = e.touches[0].clientX - this.gesture.dragStartX;
                 const dy = e.touches[0].clientY - this.gesture.dragStartY;
 
-                // 화면 픽셀을 3D 로컬 좌표로 변환
                 const scale = this.screenPixelToLocal();
-                this.hudCube.position.x = this.gesture.objStartX + dx * scale;
-                this.hudCube.position.y = this.gesture.objStartY - dy * scale; // Y축 반전
+                this.hudMesh.position.x = this.gesture.objStartX + dx * scale;
+                this.hudMesh.position.y = this.gesture.objStartY - dy * scale;
             } else if (this.gesture.isPinching && e.touches.length === 2) {
-                // 핀치: 거리 비율로 스케일 조절
                 const dist = this.getTouchDistance(e.touches);
                 const ratio = dist / this.gesture.pinchStartDist;
-                const newScale = Math.max(0.3, Math.min(20.0, this.gesture.pinchStartScale * ratio));
+                const newScale = Math.max(0.3, Math.min(5.0, this.gesture.pinchStartScale * ratio));
 
-                this.hudCubeBaseScale = newScale;
-                this.hudCube.scale.set(newScale, newScale, newScale);
+                this.hudMeshBaseScale = newScale;
+                this.hudMesh.scale.set(newScale, newScale, newScale);
             }
         }, { passive: false });
 
         touchArea.addEventListener('touchend', (e) => {
             if (e.touches.length === 0) {
-                // 모든 손가락 뗌
-                if (this.gesture.isDragging && !this.gesture.isPinching) {
-                    // 드래그 거리가 매우 짧으면 탭으로 간주
-                    const dx = Math.abs((e.changedTouches[0]?.clientX || 0) - this.gesture.dragStartX);
-                    const dy = Math.abs((e.changedTouches[0]?.clientY || 0) - this.gesture.dragStartY);
-                    if (dx < 10 && dy < 10) {
-                        const now = Date.now();
-                        if (now - lastTap < 300) {
-                            // 더블탭: 큐브 배치
-                            this.placeCube();
-                        }
-                        lastTap = now;
-                    }
-                }
                 this.gesture.isDragging = false;
                 this.gesture.isPinching = false;
             } else if (e.touches.length === 1) {
-                // 핀치 → 드래그로 전환
                 this.gesture.isPinching = false;
                 this.gesture.isDragging = true;
                 this.gesture.dragStartX = e.touches[0].clientX;
                 this.gesture.dragStartY = e.touches[0].clientY;
-                this.gesture.objStartX = this.hudCube ? this.hudCube.position.x : 0;
-                this.gesture.objStartY = this.hudCube ? this.hudCube.position.y : 0;
+                this.gesture.objStartX = this.hudMesh ? this.hudMesh.position.x : 0;
+                this.gesture.objStartY = this.hudMesh ? this.hudMesh.position.y : 0;
             }
         });
 
         // === 마우스 이벤트 (데스크탑) ===
         let mouseDown = false;
         touchArea.addEventListener('mousedown', (e) => {
-            if (!this.hudCube) {
-                this.placeCube();
-                return;
-            }
+            if (!this.hudMesh) return;
             mouseDown = true;
             this.gesture.dragStartX = e.clientX;
             this.gesture.dragStartY = e.clientY;
-            this.gesture.objStartX = this.hudCube.position.x;
-            this.gesture.objStartY = this.hudCube.position.y;
+            this.gesture.objStartX = this.hudMesh.position.x;
+            this.gesture.objStartY = this.hudMesh.position.y;
         });
 
         touchArea.addEventListener('mousemove', (e) => {
-            if (!mouseDown || !this.hudCube) return;
+            if (!mouseDown || !this.hudMesh) return;
 
             const dx = e.clientX - this.gesture.dragStartX;
             const dy = e.clientY - this.gesture.dragStartY;
             const scale = this.screenPixelToLocal();
 
-            this.hudCube.position.x = this.gesture.objStartX + dx * scale;
-            this.hudCube.position.y = this.gesture.objStartY - dy * scale;
+            this.hudMesh.position.x = this.gesture.objStartX + dx * scale;
+            this.hudMesh.position.y = this.gesture.objStartY - dy * scale;
         });
 
         touchArea.addEventListener('mouseup', () => { mouseDown = false; });
         touchArea.addEventListener('mouseleave', () => { mouseDown = false; });
 
-        // 마우스 휠: 스케일 조절 (데스크탑에서 핀치 대체)
+        // 마우스 휠: 스케일 조절
         touchArea.addEventListener('wheel', (e) => {
-            if (!this.hudCube) return;
+            if (!this.hudMesh) return;
             e.preventDefault();
 
             const delta = e.deltaY > 0 ? 0.9 : 1.1;
-            this.hudCubeBaseScale = Math.max(0.3, Math.min(5.0, this.hudCubeBaseScale * delta));
-            this.hudCube.scale.set(this.hudCubeBaseScale, this.hudCubeBaseScale, this.hudCubeBaseScale);
+            this.hudMeshBaseScale = Math.max(0.3, Math.min(5.0, this.hudMeshBaseScale * delta));
+            this.hudMesh.scale.set(this.hudMeshBaseScale, this.hudMeshBaseScale, this.hudMeshBaseScale);
         }, { passive: false });
 
         // 카메라 전환 버튼
@@ -467,7 +395,7 @@ class ARApp {
         // 리사이즈
         window.addEventListener('resize', () => this.onResize());
 
-        console.log('[Event] 제스처 이벤트 설정 완료 (드래그/핀치/휠)');
+        console.log('[Event] 제스처 이벤트 설정 완료');
     }
 
     /**
@@ -481,75 +409,74 @@ class ARApp {
 
     /**
      * 화면 1px을 카메라 로컬 좌표 단위로 변환
-     * (카메라 앞 1.5m 거리에서의 비율)
      */
     screenPixelToLocal() {
-        const distance = 1.5; // hudCube의 z 거리
+        const distance = 1.5;
         const fovRad = THREE.MathUtils.degToRad(this.camera.fov);
         const screenHeight = window.innerHeight;
-        // 카메라 시야각 기반 변환: 1px = 얼마의 3D 단위인지
         return (2 * distance * Math.tan(fovRad / 2)) / screenHeight;
     }
 
     /**
-     * HUD 영상 배치 (화면에 고정, 드래그/핀치 가능)
-     * 크로마키(초록색) 배경 제거 셰이더 적용
-     * @param {string} videoSrc - 재생할 영상 파일명 (옵션)
+     * 이미지 파일 처리 및 AR 배치
+     * @param {File} file - 이미지 파일
      */
-    placeCube(videoSrc = null) {
-        if (!this.isReady) {
+    async processAndPlaceImage(file) {
+        if (!this.isReady || !this.imageProcessor) {
             console.log('[AR] 아직 준비 안됨');
             return;
         }
 
-        // 영상 소스 업데이트
-        if (videoSrc) {
-            this.currentVideoSrc = videoSrc;
+        console.log('[AR] ===== 이미지 처리 시작 =====');
+        console.log('[AR] 파일명:', file.name);
+
+        try {
+            // 기존 HUD 정리
+            this.cleanupHud();
+
+            // MediaPipe로 배경 제거
+            this.updateStatus('배경 제거 중...');
+            const processedCanvas = await this.imageProcessor.processFile(file);
+
+            // AR에 배치
+            this.placeProcessedImage(processedCanvas);
+            this.updateStatus('이미지 배치 완료!');
+
+            // UI 상태 업데이트
+            if (this.imageUploadUI) {
+                this.imageUploadUI.showStatus('배치 완료! 드래그로 이동, 핀치로 크기 조절');
+            }
+
+        } catch (error) {
+            console.error('[AR] 이미지 처리 실패:', error);
+            this.updateStatus('이미지 처리 실패: ' + error.message);
+
+            if (this.imageUploadUI) {
+                this.imageUploadUI.showStatus('처리 실패: ' + error.message);
+            }
         }
+    }
 
-        // 기존 HUD 오브젝트 정리
-        this.cleanupHud();
+    /**
+     * 처리된 이미지를 AR에 배치 (크로마키 셰이더 적용)
+     * @param {HTMLCanvasElement} canvas - 배경이 초록색으로 대체된 캔버스
+     */
+    placeProcessedImage(canvas) {
+        console.log('[AR] 크로마키 이미지 배치');
 
-        console.log('[AR] ===== HUD 영상 배치 (크로마키) =====');
-        console.log('[AR] 영상 소스:', this.currentVideoSrc);
-
-        // 비디오 엘리먼트 생성
-        this.hudVideo = document.createElement('video');
-        this.hudVideo.loop = true;
-        this.hudVideo.muted = true;
-        this.hudVideo.playsInline = true;
-        this.hudVideo.setAttribute('playsinline', '');
-        this.hudVideo.setAttribute('webkit-playsinline', '');
-        this.hudVideo.crossOrigin = 'anonymous';
-        this.hudVideo.preload = 'metadata';
-        this.hudVideo.src = this.currentVideoSrc;
-
-        // 비디오 재생 시도 (canplay 이벤트 + 직접 호출)
-        const tryPlay = () => {
-            this.hudVideo.play().catch(e => {
-                console.warn('[AR] 영상 자동재생 실패, 재시도:', e.message);
-                // 1초 후 재시도
-                setTimeout(() => {
-                    this.hudVideo.play().catch(() => {});
-                }, 1000);
-            });
-        };
-        this.hudVideo.addEventListener('canplay', tryPlay, { once: true });
-        this.hudVideo.load();
-
-        // VideoTexture 생성
-        this.hudVideoTexture = new THREE.VideoTexture(this.hudVideo);
-        this.hudVideoTexture.colorSpace = THREE.SRGBColorSpace;
-        this.hudVideoTexture.minFilter = THREE.LinearFilter;
-        this.hudVideoTexture.magFilter = THREE.LinearFilter;
+        // 캔버스를 텍스처로 변환
+        this.hudTexture = new THREE.CanvasTexture(canvas);
+        this.hudTexture.colorSpace = THREE.SRGBColorSpace;
+        this.hudTexture.minFilter = THREE.LinearFilter;
+        this.hudTexture.magFilter = THREE.LinearFilter;
 
         // 크로마키 제거 셰이더 머티리얼
         const material = new THREE.ShaderMaterial({
             uniforms: {
-                videoTexture: { value: this.hudVideoTexture },
-                keyColor: { value: new THREE.Color(0.0, 1.0, 0.0) }, // 초록
-                similarity: { value: 0.4 },  // 색상 허용 범위
-                smoothness: { value: 0.1 },  // 경계 부드러움
+                imageTexture: { value: this.hudTexture },
+                keyColor: { value: new THREE.Color(0.0, 1.0, 0.0) },  // 초록
+                similarity: { value: 0.4 },   // 색상 허용 범위
+                smoothness: { value: 0.1 },   // 경계 부드러움
             },
             vertexShader: `
                 varying vec2 vUv;
@@ -559,7 +486,7 @@ class ARApp {
                 }
             `,
             fragmentShader: `
-                uniform sampler2D videoTexture;
+                uniform sampler2D imageTexture;
                 uniform vec3 keyColor;
                 uniform float similarity;
                 uniform float smoothness;
@@ -573,7 +500,7 @@ class ARApp {
                 }
 
                 void main() {
-                    vec4 texColor = texture2D(videoTexture, vUv);
+                    vec4 texColor = texture2D(imageTexture, vUv);
 
                     vec2 chromaVec = RGBtoUV(texColor.rgb) - RGBtoUV(keyColor);
                     float chromaDist = sqrt(dot(chromaVec, chromaVec));
@@ -587,48 +514,37 @@ class ARApp {
             side: THREE.DoubleSide,
         });
 
-        // 평면 지오메트리 (기본 1:1 비율, 영상 로드 후 조정)
-        const geometry = new THREE.PlaneGeometry(0.5, 0.5);
-        this.hudCube = new THREE.Mesh(geometry, material);
+        // 이미지 비율에 맞는 평면 생성
+        const aspect = canvas.width / canvas.height;
+        const height = 0.5;
+        const width = height * aspect;
+
+        const geometry = new THREE.PlaneGeometry(width, height);
+        this.hudMesh = new THREE.Mesh(geometry, material);
 
         // 카메라의 자식으로 추가 → 화면에 고정
-        this.hudCube.position.set(0, 0, -1.5);
-        this.hudCubeBaseScale = 1.0;
-        this.hudCube.scale.set(1, 1, 1);
+        this.hudMesh.position.set(0, 0, -1.5);
+        this.hudMeshBaseScale = 1.0;
+        this.hudMesh.scale.set(1, 1, 1);
 
-        this.camera.add(this.hudCube);
+        this.camera.add(this.hudMesh);
 
-        // 영상 메타데이터 로드 후 비율 조정
-        this.hudVideo.addEventListener('loadedmetadata', () => {
-            const aspect = this.hudVideo.videoWidth / this.hudVideo.videoHeight;
-            const height = 0.5;
-            const width = height * aspect;
-            this.hudCube.geometry.dispose();
-            this.hudCube.geometry = new THREE.PlaneGeometry(width, height);
-            console.log('[AR] 영상 크기:', this.hudVideo.videoWidth, 'x', this.hudVideo.videoHeight);
-        });
-
-        console.log('[AR] HUD 영상 배치됨 (크로마키 제거)');
+        console.log('[AR] 이미지 배치됨:', canvas.width, 'x', canvas.height);
     }
 
     /**
      * HUD 오브젝트 정리
      */
     cleanupHud() {
-        if (this.hudCube) {
-            this.camera.remove(this.hudCube);
-            this.hudCube.geometry.dispose();
-            this.hudCube.material.dispose();
-            this.hudCube = null;
+        if (this.hudMesh) {
+            this.camera.remove(this.hudMesh);
+            this.hudMesh.geometry.dispose();
+            this.hudMesh.material.dispose();
+            this.hudMesh = null;
         }
-        if (this.hudVideoTexture) {
-            this.hudVideoTexture.dispose();
-            this.hudVideoTexture = null;
-        }
-        if (this.hudVideo) {
-            this.hudVideo.pause();
-            this.hudVideo.src = '';
-            this.hudVideo = null;
+        if (this.hudTexture) {
+            this.hudTexture.dispose();
+            this.hudTexture = null;
         }
     }
 
@@ -636,11 +552,9 @@ class ARApp {
      * 카메라 전환
      */
     async switchCamera() {
-        // window.switchCamera 사용 (index.html에서 정의)
         if (window.switchCamera && typeof window.switchCamera === 'function') {
             await window.switchCamera();
 
-            // 비디오 엘리먼트 업데이트
             if (window.cameraStream && this.video) {
                 this.video.srcObject = window.cameraStream;
             }
@@ -668,88 +582,25 @@ class ARApp {
     }
 
     /**
-     * 메인 렌더 루프 (Layer 3: Compositing)
+     * 메인 렌더 루프
      */
     animate() {
         if (!this.isRunning) return;
         requestAnimationFrame(() => this.animate());
 
-        // === SLAM 처리 (Wasm Visual Odometry) ===
-        if (this.trackingMode === 'slam' || this.trackingMode === 'hybrid') {
-            this.processSLAM();
-        }
+        // 센서 기반 카메라 업데이트
+        this.updateCameraFromSensor();
 
-        // === 카메라 업데이트 ===
-        if (this.trackingMode === 'sensor' || this.trackingMode === 'hybrid') {
-            this.updateCameraFromSensor();
-        }
-
-        // === HUD 영상 텍스처 갱신 ===
-        if (this.hudVideoTexture) {
-            this.hudVideoTexture.needsUpdate = true;
-        }
-
-        // === Layer 3: 렌더링 (합성) ===
+        // 렌더링
         this.renderer.render(this.scene, this.camera);
     }
 
     /**
-     * SLAM 처리 (Wasm Visual Odometry)
-     */
-    processSLAM() {
-        if (!this.visualOdometry || !this.video) return;
-
-        // Canvas가 없으면 생성
-        if (!this.processCanvas) {
-            this.processCanvas = document.createElement('canvas');
-            this.processCtx = this.processCanvas.getContext('2d', { willReadFrequently: true });
-        }
-
-        // 비디오 크기 확인
-        if (this.video.videoWidth === 0) return;
-
-        // Canvas 크기 조정 (처리 속도를 위해 축소 가능)
-        const scale = 0.5;  // 50% 크기로 처리
-        const w = Math.floor(this.video.videoWidth * scale);
-        const h = Math.floor(this.video.videoHeight * scale);
-
-        if (this.processCanvas.width !== w || this.processCanvas.height !== h) {
-            this.processCanvas.width = w;
-            this.processCanvas.height = h;
-        }
-
-        // 비디오 프레임 추출
-        this.processCtx.drawImage(this.video, 0, 0, w, h);
-        const imageData = this.processCtx.getImageData(0, 0, w, h);
-
-        // Wasm VO 처리
-        const result = this.visualOdometry.processFrame(w, h, imageData.data);
-
-        if (result && result.tracking) {
-            // View Matrix를 Three.js 카메라에 적용
-            this.cameraPoseManager.applyViewMatrix(result.viewMatrix, true);
-
-            // 상태 업데이트
-            const info = this.cameraPoseManager.getDebugInfo();
-            this.updateStatus(
-                `추적중 | 특징점: ${result.featureCount} | ` +
-                `위치: (${info.position.x}, ${info.position.y}, ${info.position.z})`
-            );
-        }
-    }
-
-    /**
-     * 센서 기반 카메라 업데이트 (폴백/하이브리드용)
+     * 센서 기반 카메라 업데이트
      */
     updateCameraFromSensor() {
         if (!this.initialOrientation) return;
 
-        // SLAM이 추적 중이면 센서는 보조로만 사용
-        if (this.trackingMode === 'hybrid' && this.cameraPoseManager?.isTracking) {
-            return;
-        }
-
-        // CameraPoseManager를 통해 적용
         if (this.cameraPoseManager) {
             const screenOrientation = window.orientation || 0;
             this.cameraPoseManager.applyDeviceOrientation(
@@ -758,80 +609,15 @@ class ARApp {
                 this.deviceOrientation.gamma,
                 screenOrientation
             );
-        } else {
-            // 폴백: 직접 적용
-            const alpha = THREE.MathUtils.degToRad(this.deviceOrientation.alpha - this.initialOrientation.alpha);
-            const beta = THREE.MathUtils.degToRad(this.deviceOrientation.beta);
-            const gamma = THREE.MathUtils.degToRad(this.deviceOrientation.gamma);
-
-            const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
-            this.camera.quaternion.setFromEuler(euler);
-
-            const screenOrientation = window.orientation || 0;
-            const screenQuat = new THREE.Quaternion();
-            screenQuat.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -THREE.MathUtils.degToRad(screenOrientation));
-            this.camera.quaternion.multiply(screenQuat);
         }
     }
 
     /**
-     * Visual Odometry 초기화 (비동기)
-     */
-    async initVisualOdometry() {
-        try {
-            // 동적 임포트 (Wasm 빌드 후 사용 가능)
-            const voModule = await import('./VisualOdometry.js');
-            VisualOdometry = voModule.VisualOdometry;
-
-            this.visualOdometry = new VisualOdometry();
-            await this.visualOdometry.init({
-                fastThreshold: 20,
-                maxFeatures: 300
-            });
-
-            // 카메라 파라미터 동기화
-            if (this.video && this.video.videoWidth > 0) {
-                this.visualOdometry.autoConfigureCamera(
-                    this.video.videoWidth,
-                    this.video.videoHeight
-                );
-            }
-
-            this.trackingMode = 'hybrid';  // SLAM + 센서 하이브리드
-            console.log('[AR] Visual Odometry 초기화 완료');
-            return true;
-
-        } catch (e) {
-            console.warn('[AR] Visual Odometry 로드 실패 (센서 모드로 폴백):', e.message);
-            this.trackingMode = 'sensor';
-            return false;
-        }
-    }
-
-    /**
-     * 추적 모드 변경
-     * @param {'sensor'|'slam'|'hybrid'} mode
-     */
-    setTrackingMode(mode) {
-        this.trackingMode = mode;
-        console.log('[AR] 추적 모드:', mode);
-
-        if (mode === 'slam' || mode === 'hybrid') {
-            if (!this.visualOdometry) {
-                this.initVisualOdometry();
-            }
-        }
-    }
-
-    /**
-     * 포즈 리셋 (현재 위치를 원점으로)
+     * 포즈 리셋
      */
     resetPose() {
         if (this.cameraPoseManager) {
             this.cameraPoseManager.reset();
-        }
-        if (this.visualOdometry) {
-            this.visualOdometry.reset();
         }
         this.initialOrientation = null;
         console.log('[AR] 포즈 리셋됨');
@@ -849,8 +635,11 @@ class ARApp {
         if (this.renderer) {
             this.renderer.dispose();
         }
-        if (this.visualOdometry) {
-            this.visualOdometry.destroy();
+        if (this.imageProcessor) {
+            this.imageProcessor.destroy();
+        }
+        if (this.imageUploadUI) {
+            this.imageUploadUI.destroy();
         }
         console.log('[AR] 종료');
     }
@@ -858,21 +647,18 @@ class ARApp {
 
 // ==================== 앱 시작 ====================
 
-// AR 앱 인스턴스 생성
 const app = new ARApp();
 
 // 전역 노출
 window.arApp = app;
 window.addEventListener('beforeunload', () => app.destroy());
 
-// 추가 전역 함수
+// 전역 함수
 window.resetARPose = () => app.resetPose();
-window.setARTrackingMode = (mode) => app.setTrackingMode(mode);
-window.changeARVideo = (videoSrc) => app.placeCube(videoSrc);
+window.processImage = (file) => app.processAndPlaceImage(file);
 
 /**
  * 권한 승인 후 앱 시작
- * index.html에서 permissionsGranted 이벤트 발생 시 호출
  */
 function startARApp() {
     console.log('[Main] 권한 승인 완료 - AR 앱 시작');
@@ -882,18 +668,15 @@ function startARApp() {
 // 권한 승인 이벤트 리스너
 window.addEventListener('permissionsGranted', startARApp);
 
-// 이미 권한이 승인된 경우 (페이지 새로고침 등)
+// 이미 권한이 승인된 경우
 if (window.permissionsGranted) {
     startARApp();
 }
 
-// 데스크탑에서 시작 화면 없이 바로 시작하는 경우
-// (권한 요청이 필요 없는 환경)
+// 데스크탑에서 시작 화면 없이 바로 시작
 window.addEventListener('DOMContentLoaded', () => {
-    // 시작 화면이 없거나 이미 숨겨진 경우
     const startScreen = document.getElementById('start-screen');
     if (!startScreen || startScreen.classList.contains('hidden')) {
-        // 바로 시작
         if (!window.permissionsGranted) {
             console.log('[Main] 시작 화면 대기 중...');
         }

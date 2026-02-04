@@ -11,6 +11,7 @@
     "build:all": "npm run build:wasm && npm run build"
   },
   "dependencies": {
+    "@mediapipe/selfie_segmentation": "^0.1.1675465747",
     "express": "^4.22.1",
     "gl-matrix": "^3.4.3",
     "three": "^0.160.0"
