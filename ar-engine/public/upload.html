@@ -494,6 +494,63 @@
                 await processImage(file);
             }
 
+            // 테두리 정리 (Choke) - 알파 채널 침식
+            async function chokeAlpha(blob, amount = 2) {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imageData.data;
+                        const width = canvas.width;
+                        const height = canvas.height;
+
+                        // 알파값 복사
+                        const alphaOrig = new Uint8Array(width * height);
+                        for (let i = 0; i < width * height; i++) {
+                            alphaOrig[i] = data[i * 4 + 3];
+                        }
+
+                        // 침식 (Erosion) - 주변 픽셀 중 가장 작은 알파값 사용
+                        for (let pass = 0; pass < amount; pass++) {
+                            const alphaCopy = new Uint8Array(alphaOrig);
+                            for (let y = 1; y < height - 1; y++) {
+                                for (let x = 1; x < width - 1; x++) {
+                                    const idx = y * width + x;
+                                    let minAlpha = alphaCopy[idx];
+                                    // 3x3 커널
+                                    for (let dy = -1; dy <= 1; dy++) {
+                                        for (let dx = -1; dx <= 1; dx++) {
+                                            const nIdx = (y + dy) * width + (x + dx);
+                                            minAlpha = Math.min(minAlpha, alphaCopy[nIdx]);
+                                        }
+                                    }
+                                    alphaOrig[idx] = minAlpha;
+                                }
+                            }
+                        }
+
+                        // 결과 적용
+                        for (let i = 0; i < width * height; i++) {
+                            data[i * 4 + 3] = alphaOrig[i];
+                        }
+
+                        ctx.putImageData(imageData, 0, 0);
+
+                        canvas.toBlob((resultBlob) => {
+                            URL.revokeObjectURL(img.src);
+                            resolve(resultBlob);
+                        }, 'image/png');
+                    };
+                    img.src = URL.createObjectURL(blob);
+                });
+            }
+
             // 이미지 처리 (배경 제거)
             async function processImage(file) {
                 progressContainer.classList.add('visible');
@@ -503,7 +560,7 @@
                 progressText.textContent = '모델 로딩 중...';
 
                 try {
-                    processedImageBlob = await removeBackground(file, {
+                    let rawBlob = await removeBackground(file, {
                         model: 'medium',
                         output: {
                             format: 'image/png',
@@ -511,7 +568,7 @@
                         },
                         progress: (key, current, total) => {
                             const percent = Math.round((current / total) * 100);
-                            progressFill.style.width = percent + '%';
+                            progressFill.style.width = (percent * 0.9) + '%'; // 90%까지
                             if (percent < 30) {
                                 progressText.textContent = '모델 로딩 중...';
                             } else if (percent < 70) {
@@ -521,6 +578,11 @@
                             }
                         }
                     });
+
+                    // 테두리 정리 (choke)
+                    progressText.textContent = '테두리 정리 중...';
+                    progressFill.style.width = '95%';
+                    processedImageBlob = await chokeAlpha(rawBlob, 2);
 
                     progressFill.style.width = '100%';
                     progressText.textContent = '완료!';
