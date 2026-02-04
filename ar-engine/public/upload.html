@@ -16,8 +16,8 @@
             width: 100%;
             height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #fff;
+            background: linear-gradient(135deg, #50586C 0%, #3d4455 100%);
+            color: #DCE2F0;
             overflow-x: hidden;
         }
 
@@ -30,14 +30,13 @@
         }
 
         h1 {
-            color: #00ff88;
+            color: #DCE2F0;
             font-size: 28px;
             margin-bottom: 10px;
-            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
         }
 
         .subtitle {
-            color: #888;
+            color: rgba(220, 226, 240, 0.7);
             font-size: 14px;
             margin-bottom: 40px;
             text-align: center;
@@ -47,8 +46,8 @@
         .upload-area {
             width: 100%;
             max-width: 400px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px dashed rgba(0, 255, 136, 0.3);
+            background: rgba(220, 226, 240, 0.1);
+            border: 2px dashed rgba(220, 226, 240, 0.3);
             border-radius: 20px;
             padding: 40px 20px;
             text-align: center;
@@ -58,15 +57,15 @@
 
         .upload-area:hover,
         .upload-area.drag-over {
-            border-color: #00ff88;
-            background: rgba(0, 255, 136, 0.1);
+            border-color: #DCE2F0;
+            background: rgba(220, 226, 240, 0.15);
         }
 
         .upload-icon {
             width: 80px;
             height: 80px;
             margin: 0 auto 20px;
-            background: rgba(0, 255, 136, 0.2);
+            background: rgba(220, 226, 240, 0.2);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -76,20 +75,20 @@
         .upload-icon svg {
             width: 40px;
             height: 40px;
-            stroke: #00ff88;
+            stroke: #DCE2F0;
             fill: none;
             stroke-width: 2;
         }
 
         .upload-text {
             font-size: 16px;
-            color: #ccc;
+            color: #DCE2F0;
             margin-bottom: 10px;
         }
 
         .upload-hint {
             font-size: 12px;
-            color: #666;
+            color: rgba(220, 226, 240, 0.6);
         }
 
         /* 숨겨진 파일 입력 */
@@ -130,23 +129,27 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #00ff88, #00aa44);
-            color: #000;
+            background: #DCE2F0;
+            color: #50586C;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.4);
+            box-shadow: 0 4px 20px rgba(220, 226, 240, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(220, 226, 240, 0.15);
+            color: #DCE2F0;
+            border: 1px solid rgba(220, 226, 240, 0.3);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(220, 226, 240, 0.25);
         }
 
         /* 미리보기 */
@@ -166,13 +169,13 @@
             max-height: 300px;
             object-fit: contain;
             border-radius: 12px;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.2);
         }
 
         .preview-info {
             margin-top: 10px;
             font-size: 14px;
-            color: #888;
+            color: rgba(220, 226, 240, 0.7);
             text-align: center;
         }
 
@@ -191,7 +194,7 @@
         .progress-bar {
             width: 100%;
             height: 8px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(220, 226, 240, 0.2);
             border-radius: 4px;
             overflow: hidden;
         }
@@ -199,27 +202,27 @@
         .progress-fill {
             width: 0%;
             height: 100%;
-            background: linear-gradient(90deg, #00ff88, #00aa44);
+            background: #DCE2F0;
             transition: width 0.3s ease;
         }
 
         .progress-text {
             margin-top: 10px;
             font-size: 14px;
-            color: #00ff88;
+            color: #DCE2F0;
             text-align: center;
         }
 
         /* AR로 이동 버튼 */
-        .ar-button {
+        #ar-button {
             margin-top: 30px;
             width: 100%;
             max-width: 400px;
             padding: 20px;
-            background: linear-gradient(135deg, #00ff88, #00aa44);
+            background: #DCE2F0;
             border: none;
             border-radius: 50px;
-            color: #000;
+            color: #50586C;
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
@@ -227,29 +230,27 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            box-shadow: 0 4px 30px rgba(0, 255, 136, 0.5);
+            box-shadow: 0 4px 30px rgba(220, 226, 240, 0.3);
             transition: all 0.3s ease;
             position: relative;
             z-index: 100;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
-        .ar-button.visible {
+        #ar-button.visible {
             display: flex;
         }
 
-        .ar-button:active {
+        #ar-button:active {
             transform: scale(0.98);
+            background: #c5cde0;
         }
 
-        .ar-button:hover {
-            transform: scale(1.02);
-            box-shadow: 0 6px 40px rgba(0, 255, 136, 0.7);
-        }
-
-        .ar-button svg {
+        #ar-button svg {
             width: 24px;
             height: 24px;
-            stroke: currentColor;
+            stroke: #50586C;
             fill: none;
             stroke-width: 2;
         }
@@ -268,7 +269,7 @@
 
         .result-label {
             font-size: 14px;
-            color: #00ff88;
+            color: #DCE2F0;
             margin-bottom: 10px;
         }
 
@@ -277,19 +278,22 @@
             max-height: 300px;
             object-fit: contain;
             border-radius: 12px;
-            background: repeating-conic-gradient(#222 0% 25%, #333 0% 50%) 50% / 20px 20px;
+            background: repeating-conic-gradient(#3d4455 0% 25%, #50586C 0% 50%) 50% / 20px 20px;
         }
 
         /* 에러 메시지 */
         .error-message {
             margin-top: 20px;
             padding: 15px;
-            background: rgba(255, 68, 68, 0.2);
-            border: 1px solid rgba(255, 68, 68, 0.5);
+            background: rgba(255, 100, 100, 0.2);
+            border: 1px solid rgba(255, 100, 100, 0.5);
             border-radius: 10px;
-            color: #ff4444;
+            color: #ff6464;
             font-size: 14px;
             display: none;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
         }
 
         .error-message.visible {
@@ -369,11 +373,11 @@
         </div>
 
         <!-- AR로 이동 버튼 -->
-        <button class="ar-button" id="ar-button">
+        <button id="ar-button">
             <svg viewBox="0 0 24 24">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
-            AR로 보기
+            <span>AR로 보기</span>
         </button>
 
         <!-- 에러 메시지 -->
@@ -383,234 +387,221 @@
     <script type="module">
         import { removeBackground } from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.1/+esm';
 
-        // 요소 참조
-        const uploadArea = document.getElementById('upload-area');
-        const fileInput = document.getElementById('file-input');
-        const galleryBtn = document.getElementById('gallery-btn');
-        const cameraBtn = document.getElementById('camera-btn');
-        const previewContainer = document.getElementById('preview-container');
-        const previewImage = document.getElementById('preview-image');
-        const previewInfo = document.getElementById('preview-info');
-        const progressContainer = document.getElementById('progress-container');
-        const progressFill = document.getElementById('progress-fill');
-        const progressText = document.getElementById('progress-text');
-        const resultContainer = document.getElementById('result-container');
-        const resultImage = document.getElementById('result-image');
-        const arButton = document.getElementById('ar-button');
-        const errorMessage = document.getElementById('error-message');
-
         // 처리된 이미지 Blob
         let processedImageBlob = null;
 
-        // 초기화
-        async function init() {
-            console.log('[Upload] 초기화 완료');
-        }
-
-        init();
-
-        // 갤러리 버튼 - 갤러리에서 선택
-        galleryBtn.addEventListener('click', () => {
-            fileInput.removeAttribute('capture');
-            fileInput.click();
+        // DOM 로드 후 실행
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('[Upload] DOM 로드 완료');
+            initApp();
         });
 
-        // 카메라 버튼 - 카메라로 촬영
-        cameraBtn.addEventListener('click', () => {
-            fileInput.setAttribute('capture', 'environment');
-            fileInput.click();
-        });
+        function initApp() {
+            // 요소 참조
+            const uploadArea = document.getElementById('upload-area');
+            const fileInput = document.getElementById('file-input');
+            const galleryBtn = document.getElementById('gallery-btn');
+            const cameraBtn = document.getElementById('camera-btn');
+            const previewContainer = document.getElementById('preview-container');
+            const previewImage = document.getElementById('preview-image');
+            const previewInfo = document.getElementById('preview-info');
+            const progressContainer = document.getElementById('progress-container');
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            const resultContainer = document.getElementById('result-container');
+            const resultImage = document.getElementById('result-image');
+            const arButton = document.getElementById('ar-button');
+            const errorMessage = document.getElementById('error-message');
 
-        // 업로드 영역 클릭
-        uploadArea.addEventListener('click', () => {
-            fileInput.removeAttribute('capture');
-            fileInput.click();
-        });
+            console.log('[Upload] 요소 참조:', { arButton: !!arButton });
 
-        // 파일 선택 처리
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) handleFile(file);
-        });
-
-        // 드래그 앤 드롭
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('drag-over');
-        });
-
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('drag-over');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('drag-over');
-
-            const file = e.dataTransfer.files[0];
-            if (file && file.type.startsWith('image/')) {
-                handleFile(file);
-            }
-        });
-
-        // 파일 처리
-        async function handleFile(file) {
-            console.log('[Upload] 파일 선택:', file.name, file.size);
-
-            // 파일 크기 검사
-            if (file.size > 10 * 1024 * 1024) {
-                showError('파일 크기가 너무 큽니다 (최대 10MB)');
-                return;
-            }
-
-            // 타입 검사
-            if (!file.type.startsWith('image/')) {
-                showError('이미지 파일만 지원됩니다');
-                return;
-            }
-
-            hideError();
-
-            // 원본 미리보기 표시
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                previewImage.src = e.target.result;
-                previewInfo.textContent = `${file.name} (${formatFileSize(file.size)})`;
-                previewContainer.classList.add('visible');
+            // 갤러리 버튼
+            galleryBtn.onclick = () => {
+                fileInput.removeAttribute('capture');
+                fileInput.click();
             };
-            reader.readAsDataURL(file);
 
-            // 배경 제거 처리
-            await processImage(file);
-        }
+            // 카메라 버튼
+            cameraBtn.onclick = () => {
+                fileInput.setAttribute('capture', 'environment');
+                fileInput.click();
+            };
 
-        // 이미지 처리 (배경 제거)
-        async function processImage(file) {
-            // 진행 상태 표시
-            progressContainer.classList.add('visible');
-            resultContainer.classList.remove('visible');
-            arButton.classList.remove('visible');
-            progressFill.style.width = '0%';
-            progressText.textContent = '모델 로딩 중...';
+            // 업로드 영역 클릭
+            uploadArea.onclick = () => {
+                fileInput.removeAttribute('capture');
+                fileInput.click();
+            };
 
-            try {
-                // @imgly/background-removal로 배경 제거
-                processedImageBlob = await removeBackground(file, {
-                    model: 'medium',
-                    output: {
-                        format: 'image/png',
-                        quality: 0.9
-                    },
-                    progress: (key, current, total) => {
-                        const percent = Math.round((current / total) * 100);
-                        progressFill.style.width = percent + '%';
-                        if (percent < 30) {
-                            progressText.textContent = '모델 로딩 중...';
-                        } else if (percent < 70) {
-                            progressText.textContent = '배경 분석 중...';
-                        } else {
-                            progressText.textContent = '배경 제거 중...';
-                        }
-                    }
-                });
+            // 파일 선택 처리
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) handleFile(file);
+            };
 
-                progressFill.style.width = '100%';
-                progressText.textContent = '완료!';
+            // 드래그 앤 드롭
+            uploadArea.ondragover = (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            };
 
-                // 결과 미리보기
-                const resultURL = URL.createObjectURL(processedImageBlob);
-                resultImage.src = resultURL;
-                resultContainer.classList.add('visible');
+            uploadArea.ondragleave = () => {
+                uploadArea.classList.remove('drag-over');
+            };
 
-                // AR 버튼 표시
-                arButton.classList.add('visible');
+            uploadArea.ondrop = (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    handleFile(file);
+                }
+            };
 
-                // 진행 상태 숨기기
-                setTimeout(() => {
-                    progressContainer.classList.remove('visible');
-                }, 1000);
+            // AR 버튼 클릭 - onclick 사용
+            arButton.onclick = function(e) {
+                e.preventDefault();
+                console.log('[Upload] AR 버튼 onclick 발생');
+                goToAR();
+            };
 
-                console.log('[Upload] 배경 제거 완료');
+            // 파일 처리
+            async function handleFile(file) {
+                console.log('[Upload] 파일 선택:', file.name, file.size);
 
-            } catch (error) {
-                console.error('[Upload] 처리 실패:', error);
-                showError('배경 제거에 실패했습니다: ' + error.message);
-                progressContainer.classList.remove('visible');
-            }
-        }
+                if (file.size > 10 * 1024 * 1024) {
+                    showError('파일 크기가 너무 큽니다 (최대 10MB)');
+                    return;
+                }
 
-        // Blob을 DataURL로 변환하는 헬퍼 함수
-        function blobToDataURL(blob) {
-            return new Promise((resolve, reject) => {
+                if (!file.type.startsWith('image/')) {
+                    showError('이미지 파일만 지원됩니다');
+                    return;
+                }
+
+                hideError();
+
+                // 원본 미리보기 표시
                 const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-        }
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    previewInfo.textContent = `${file.name} (${formatFileSize(file.size)})`;
+                    previewContainer.classList.add('visible');
+                };
+                reader.readAsDataURL(file);
 
-        // AR로 이동 함수
-        async function goToAR() {
-            console.log('[Upload] AR 버튼 클릭됨');
-
-            if (!processedImageBlob) {
-                console.log('[Upload] processedImageBlob이 없음');
-                return;
+                // 배경 제거 처리
+                await processImage(file);
             }
 
-            try {
-                arButton.textContent = '로딩 중...';
-                arButton.style.pointerEvents = 'none';
+            // 이미지 처리 (배경 제거)
+            async function processImage(file) {
+                progressContainer.classList.add('visible');
+                resultContainer.classList.remove('visible');
+                arButton.classList.remove('visible');
+                progressFill.style.width = '0%';
+                progressText.textContent = '모델 로딩 중...';
 
-                // 처리된 이미지를 sessionStorage에 저장 (Base64)
-                const dataURL = await blobToDataURL(processedImageBlob);
-                sessionStorage.setItem('arImage', dataURL);
+                try {
+                    processedImageBlob = await removeBackground(file, {
+                        model: 'medium',
+                        output: {
+                            format: 'image/png',
+                            quality: 0.9
+                        },
+                        progress: (key, current, total) => {
+                            const percent = Math.round((current / total) * 100);
+                            progressFill.style.width = percent + '%';
+                            if (percent < 30) {
+                                progressText.textContent = '모델 로딩 중...';
+                            } else if (percent < 70) {
+                                progressText.textContent = '배경 분석 중...';
+                            } else {
+                                progressText.textContent = '배경 제거 중...';
+                            }
+                        }
+                    });
 
-                console.log('[Upload] 이미지 저장 완료, AR 페이지로 이동');
+                    progressFill.style.width = '100%';
+                    progressText.textContent = '완료!';
 
-                // AR 페이지로 이동
-                window.location.href = 'ar.html';
-            } catch (err) {
-                console.error('[Upload] AR 이동 실패:', err);
-                arButton.innerHTML = `
-                    <svg viewBox="0 0 24 24">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                    </svg>
-                    AR로 보기
-                `;
-                arButton.style.pointerEvents = 'auto';
+                    const resultURL = URL.createObjectURL(processedImageBlob);
+                    resultImage.src = resultURL;
+                    resultContainer.classList.add('visible');
+
+                    // AR 버튼 표시
+                    arButton.classList.add('visible');
+                    console.log('[Upload] AR 버튼 표시됨, visible 클래스:', arButton.classList.contains('visible'));
+
+                    setTimeout(() => {
+                        progressContainer.classList.remove('visible');
+                    }, 1000);
+
+                    console.log('[Upload] 배경 제거 완료, processedImageBlob:', !!processedImageBlob);
+
+                } catch (error) {
+                    console.error('[Upload] 처리 실패:', error);
+                    showError('배경 제거에 실패했습니다: ' + error.message);
+                    progressContainer.classList.remove('visible');
+                }
             }
-        }
 
-        // 클릭 이벤트
-        arButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            goToAR();
-        });
+            // AR로 이동 함수
+            async function goToAR() {
+                console.log('[Upload] goToAR 호출됨, processedImageBlob:', !!processedImageBlob);
 
-        // 터치 이벤트 (모바일)
-        arButton.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            goToAR();
-        }, { passive: false });
+                if (!processedImageBlob) {
+                    console.log('[Upload] processedImageBlob이 없음');
+                    alert('먼저 이미지를 업로드하고 배경 제거를 완료해주세요.');
+                    return;
+                }
 
-        // 에러 표시
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.classList.add('visible');
-        }
+                try {
+                    arButton.querySelector('span').textContent = '로딩 중...';
+                    arButton.style.pointerEvents = 'none';
 
-        function hideError() {
-            errorMessage.classList.remove('visible');
-        }
+                    const dataURL = await blobToDataURL(processedImageBlob);
+                    sessionStorage.setItem('arImage', dataURL);
 
-        // 파일 크기 포맷
-        function formatFileSize(bytes) {
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+                    console.log('[Upload] 이미지 저장 완료, AR 페이지로 이동');
+                    window.location.href = 'ar.html';
+
+                } catch (err) {
+                    console.error('[Upload] AR 이동 실패:', err);
+                    alert('오류가 발생했습니다: ' + err.message);
+                    arButton.querySelector('span').textContent = 'AR로 보기';
+                    arButton.style.pointerEvents = 'auto';
+                }
+            }
+
+            // Blob을 DataURL로 변환
+            function blobToDataURL(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            }
+
+            // 에러 표시
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.classList.add('visible');
+            }
+
+            function hideError() {
+                errorMessage.classList.remove('visible');
+            }
+
+            // 파일 크기 포맷
+            function formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            }
+
+            console.log('[Upload] 초기화 완료');
         }
     </script>
 </body>
