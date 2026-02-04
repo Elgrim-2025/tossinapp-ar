@@ -752,14 +752,11 @@
                 e.preventDefault();
                 if (!hudMesh) return;
 
-                // 전면 카메라일 때 X축 방향 반전
-                const xDirection = currentFacing === 'user' ? -1 : 1;
-
                 if (gesture.isDragging && e.touches.length === 1) {
                     const dx = e.touches[0].clientX - gesture.dragStartX;
                     const dy = e.touches[0].clientY - gesture.dragStartY;
                     const scale = screenPixelToLocal();
-                    hudMesh.position.x = gesture.objStartX + dx * scale * xDirection;
+                    hudMesh.position.x = gesture.objStartX + dx * scale;
                     hudMesh.position.y = gesture.objStartY - dy * scale;
                 } else if (gesture.isPinching && e.touches.length === 2) {
                     const dist = getTouchDistance(e.touches);
@@ -796,11 +793,10 @@
 
             touchArea.addEventListener('mousemove', (e) => {
                 if (!mouseDown || !hudMesh) return;
-                const xDirection = currentFacing === 'user' ? -1 : 1;
                 const dx = e.clientX - gesture.dragStartX;
                 const dy = e.clientY - gesture.dragStartY;
                 const scale = screenPixelToLocal();
-                hudMesh.position.x = gesture.objStartX + dx * scale * xDirection;
+                hudMesh.position.x = gesture.objStartX + dx * scale;
                 hudMesh.position.y = gesture.objStartY - dy * scale;
             });
 
