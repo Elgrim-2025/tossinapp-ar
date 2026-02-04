@@ -582,7 +582,7 @@
                     // 테두리 정리 (choke)
                     progressText.textContent = '테두리 정리 중...';
                     progressFill.style.width = '95%';
-                    processedImageBlob = await chokeAlpha(rawBlob, 2);
+                    processedImageBlob = await chokeAlpha(rawBlob, 1);
 
                     progressFill.style.width = '100%';
                     progressText.textContent = '완료!';
