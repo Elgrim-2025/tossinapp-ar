@@ -1,7 +1,7 @@
 /**
  * AR Chroma - 메인 앱 로직
  */
-(function() {
+(function () {
     'use strict';
 
     // ========== 상태 관리 ==========
@@ -287,7 +287,7 @@
     function downloadChromaImage() {
         if (!results.chroma) return;
 
-        console.log('[App] 다운로드 시작 - 워터마크 적용');
+        console.log('[App] 다운로드 시작 - 워터마크 적용 (watermark.js 사용)');
 
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = results.chroma.width;
@@ -296,26 +296,14 @@
 
         ctx.drawImage(results.chroma, 0, 0);
 
-        const logo = new Image();
-        
-        logo.onload = () => {
-            console.log('[App] 로고 로드 성공, 워터마크 추가 중...');
-            
-            const logoSize = Math.min(tempCanvas.width, tempCanvas.height) * 0.15;
-            const margin = 20;
-            const logoX = tempCanvas.width - logoSize - margin;
-            const logoY = tempCanvas.height - logoSize - margin;
-
-            console.log('[App] 캔버스 크기:', tempCanvas.width, 'x', tempCanvas.height);
-            console.log('[App] 로고 위치:', { logoX, logoY, logoSize });
-
-            ctx.globalAlpha = 0.5; // 50% 불투명도
-            ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
-            ctx.globalAlpha = 1.0;
-
+        Watermark.apply(tempCanvas, './el-logo.png', {
+            opacity: 0.5,
+            sizeRatio: 0.15,
+            margin: 20
+        }).then((canvas) => {
             console.log('[App] 워터마크 적용 완료, 이미지 저장 중...');
 
-            tempCanvas.toBlob((blob) => {
+            canvas.toBlob((blob) => {
                 console.log('[App] Blob 생성 완료:', blob.size, 'bytes');
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -325,24 +313,7 @@
                 URL.revokeObjectURL(url);
                 console.log('[App] 다운로드 완료');
             }, 'image/png');
-        };
-        
-        logo.onerror = (e) => {
-            console.error('[App] 로고 로드 실패:', e);
-            console.error('[App] 로고 경로 확인 필요: ./el-logo.png');
-            
-            tempCanvas.toBlob((blob) => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'chroma-' + Date.now() + '.png';
-                a.click();
-                URL.revokeObjectURL(url);
-            }, 'image/png');
-        };
-        
-        logo.src = './el-logo.png';
-        console.log('[App] 로고 로딩 시작:', logo.src);
+        });
     }
 
     // ========== 리셋 ==========

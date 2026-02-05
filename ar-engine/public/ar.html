@@ -12,7 +12,8 @@
             box-sizing: border-box;
         }
 
-        html, body {
+        html,
+        body {
             width: 100%;
             height: 100%;
             overflow: hidden;
@@ -69,7 +70,7 @@
             pointer-events: none;
         }
 
-        .top-ui > * {
+        .top-ui>* {
             pointer-events: auto;
         }
 
@@ -211,7 +212,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .loading-text {
@@ -395,15 +398,15 @@
     <div class="error-screen" id="error-screen">
         <div class="error-icon">
             <svg viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
         </div>
         <p class="error-message" id="error-message">오류가 발생했습니다</p>
         <button class="btn-error" onclick="location.href='upload.html'">
             <svg viewBox="0 0 24 24">
-                <polyline points="15 18 9 12 15 6"/>
+                <polyline points="15 18 9 12 15 6" />
             </svg>
             이미지 다시 선택
         </button>
@@ -425,15 +428,15 @@
     <div class="top-ui">
         <button class="btn-icon" id="btn-back" title="뒤로가기">
             <svg viewBox="0 0 24 24">
-                <polyline points="15 18 9 12 15 6"/>
+                <polyline points="15 18 9 12 15 6" />
             </svg>
         </button>
         <button class="btn-icon" id="btn-switch-camera" title="카메라 전환">
             <svg viewBox="0 0 24 24">
-                <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
-                <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/>
-                <polyline points="16 2 19 5 16 8"/>
-                <polyline points="8 22 5 19 8 16"/>
+                <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5" />
+                <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5" />
+                <polyline points="16 2 19 5 16 8" />
+                <polyline points="8 22 5 19 8 16" />
             </svg>
         </button>
     </div>
@@ -454,9 +457,9 @@
     <div class="bottom-ui">
         <button class="btn-side" id="btn-new-image" title="새 이미지">
             <svg viewBox="0 0 24 24">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5"/>
-                <polyline points="21 15 16 10 5 21"/>
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
             </svg>
         </button>
         <button class="btn-capture" id="btn-capture" title="캡처">
@@ -464,9 +467,9 @@
         </button>
         <button class="btn-side" id="btn-download" title="다운로드" style="opacity: 0.5; pointer-events: none;">
             <svg viewBox="0 0 24 24">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
         </button>
     </div>
@@ -478,6 +481,7 @@
         }
     }
     </script>
+    <script src="watermark.js"></script>
 
     <script type="module">
         import * as THREE from 'three';
@@ -903,19 +907,13 @@
             // AR 오버레이 합성
             ctx.drawImage(arCanvas, 0, 0);
 
-            // === 워터마크 추가 ===
-            const logo = new Image();
-            logo.onload = () => {
-                const logoSize = Math.min(canvas.width, canvas.height) * 0.15;
-                const margin = 20;
-                const logoX = canvas.width - logoSize - margin;
-                const logoY = canvas.height - logoSize - margin;
-
-                ctx.globalAlpha = 0.5; // 50% 불투명도
-                ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
-                ctx.globalAlpha = 1.0;
-
-                // Blob 생성 (로고가 그려진 후 호출)
+            // === 워터마크 추가 (watermark.js 사용) ===
+            Watermark.apply(canvas, 'el-logo.png', {
+                opacity: 0.5,
+                sizeRatio: 0.15,
+                margin: 20
+            }).then(() => {
+                // Blob 생성 (워터마크 적용 후 호출)
                 canvas.toBlob((blob) => {
                     lastCapturedBlob = blob;
 
@@ -925,23 +923,9 @@
                     downloadBtn.style.pointerEvents = 'auto';
 
                     showToast('캡처 완료!');
-                    console.log('[AR] 캡처 완료 (워터마크 포함)');
+                    console.log('[AR] 캡처 완료 (watermark.js 적용됨)');
                 }, 'image/png');
-            };
-
-            logo.onerror = () => {
-                console.error('[AR] 워터마크 로고 로드 실패');
-                // 로고 로드 실패해도 캡처는 진행
-                canvas.toBlob((blob) => {
-                    lastCapturedBlob = blob;
-                    const downloadBtn = document.getElementById('btn-download');
-                    downloadBtn.style.opacity = '1';
-                    downloadBtn.style.pointerEvents = 'auto';
-                    showToast('캡처 완료!');
-                }, 'image/png');
-            };
-
-            logo.src = 'el-logo.png';
+            });
         }
 
         // object-fit: cover 방식으로 비디오를 캔버스에 그리기
