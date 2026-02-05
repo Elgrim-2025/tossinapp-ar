@@ -903,18 +903,45 @@
             // AR 오버레이 합성
             ctx.drawImage(arCanvas, 0, 0);
 
-            // Blob 생성
-            canvas.toBlob((blob) => {
-                lastCapturedBlob = blob;
+            // === 워터마크 추가 ===
+            const logo = new Image();
+            logo.onload = () => {
+                const logoSize = Math.min(canvas.width, canvas.height) * 0.15;
+                const margin = 20;
+                const logoX = canvas.width - logoSize - margin;
+                const logoY = canvas.height - logoSize - margin;
 
-                // 다운로드 버튼 활성화
-                const downloadBtn = document.getElementById('btn-download');
-                downloadBtn.style.opacity = '1';
-                downloadBtn.style.pointerEvents = 'auto';
+                ctx.globalAlpha = 0.5; // 50% 불투명도
+                ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+                ctx.globalAlpha = 1.0;
 
-                showToast('캡처 완료!');
-                console.log('[AR] 캡처 완료');
-            }, 'image/png');
+                // Blob 생성 (로고가 그려진 후 호출)
+                canvas.toBlob((blob) => {
+                    lastCapturedBlob = blob;
+
+                    // 다운로드 버튼 활성화
+                    const downloadBtn = document.getElementById('btn-download');
+                    downloadBtn.style.opacity = '1';
+                    downloadBtn.style.pointerEvents = 'auto';
+
+                    showToast('캡처 완료!');
+                    console.log('[AR] 캡처 완료 (워터마크 포함)');
+                }, 'image/png');
+            };
+
+            logo.onerror = () => {
+                console.error('[AR] 워터마크 로고 로드 실패');
+                // 로고 로드 실패해도 캡처는 진행
+                canvas.toBlob((blob) => {
+                    lastCapturedBlob = blob;
+                    const downloadBtn = document.getElementById('btn-download');
+                    downloadBtn.style.opacity = '1';
+                    downloadBtn.style.pointerEvents = 'auto';
+                    showToast('캡처 완료!');
+                }, 'image/png');
+            };
+
+            logo.src = 'el-logo.png';
         }
 
         // object-fit: cover 방식으로 비디오를 캔버스에 그리기
