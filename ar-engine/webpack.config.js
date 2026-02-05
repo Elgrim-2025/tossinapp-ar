@@ -37,6 +37,11 @@ module.exports = {
                     from: 'public/ar.html',
                     to: 'ar.html'
                 },
+                // 로고 이미지
+                {
+                    from: 'public/logo.png',
+                    to: 'logo.png'
+                },
                 // WASM 파일
                 {
                     from: 'public/wasm/ar-engine.js',
