@@ -279,14 +279,45 @@
     function downloadChromaImage() {
         if (!results.chroma) return;
 
-        results.chroma.toBlob((blob) => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'chroma-' + Date.now() + '.png';
-            a.click();
-            URL.revokeObjectURL(url);
-        }, 'image/png');
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = results.chroma.width;
+        tempCanvas.height = results.chroma.height;
+        const ctx = tempCanvas.getContext('2d');
+
+        ctx.drawImage(results.chroma, 0, 0);
+
+        const logo = new Image();
+        logo.onload = () => {
+            const logoSize = Math.min(tempCanvas.width, tempCanvas.height) * 0.08;
+            const logoX = tempCanvas.width - logoSize - 20;
+            const logoY = tempCanvas.height - logoSize - 20;
+
+            ctx.filter = 'grayscale(100%)';
+            ctx.globalAlpha = 0.5;
+            ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+            ctx.filter = 'none';
+            ctx.globalAlpha = 1.0;
+
+            tempCanvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'chroma-' + Date.now() + '.png';
+                a.click();
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        };
+        logo.onerror = () => {
+            tempCanvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'chroma-' + Date.now() + '.png';
+                a.click();
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        };
+        logo.src = 'el-logo.png';
     }
 
     // ========== 리셋 ==========
