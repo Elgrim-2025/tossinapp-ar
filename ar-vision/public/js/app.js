@@ -51,7 +51,7 @@
 
     // 현재 활성화된 탭
     let currentTab = 'original';
-    
+
     // 촬영된 스크린샷 저장
     let capturedScreenshot = null;
 
@@ -86,7 +86,12 @@
                 $arControls.style.display = 'none';
             });
         }
-        
+
+        const $arCaptureBtn = document.getElementById('ar-capture-btn');
+        if ($arCaptureBtn) {
+            $arCaptureBtn.addEventListener('click', captureARScreenshot);
+        }
+
         // 초기 상태: 저장 버튼 비활성화
         updateDownloadButton();
 
@@ -250,7 +255,7 @@
     // ========== 탭 전환 ==========
     function switchTab(tabName) {
         currentTab = tabName;
-        
+
         // 탭 버튼 활성화
         $tabBtns.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tab === tabName);
@@ -268,7 +273,7 @@
         } else {
             stopARMode();
         }
-        
+
         updateDownloadButton();
     }
 
@@ -361,7 +366,7 @@
                 URL.revokeObjectURL(url);
             }, 'image/png');
         };
-        
+
         logo.onerror = () => {
             capturedScreenshot.toBlob((blob) => {
                 const url = URL.createObjectURL(blob);
@@ -374,7 +379,7 @@
                 URL.revokeObjectURL(url);
             }, 'image/png');
         };
-        
+
         logo.src = './el-logo.png';
     }
 
@@ -409,7 +414,7 @@
                 URL.revokeObjectURL(url);
             }, 'image/png');
         };
-        
+
         logo.onerror = () => {
             tempCanvas.toBlob((blob) => {
                 const url = URL.createObjectURL(blob);
@@ -422,7 +427,7 @@
                 URL.revokeObjectURL(url);
             }, 'image/png');
         };
-        
+
         logo.src = './el-logo.png';
     }
 

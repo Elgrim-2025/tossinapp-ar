@@ -465,7 +465,7 @@
         <button class="btn-capture" id="btn-capture" title="캡처">
             <div class="inner-circle"></div>
         </button>
-        <button class="btn-side" id="btn-download" title="다운로드" style="opacity: 0.5; pointer-events: none;">
+        <button class="btn-side" id="btn-download" title="다운로드">
             <svg viewBox="0 0 24 24">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
@@ -885,60 +885,62 @@
         }
 
         // === 화면 캡처 ===
-        function captureScreen() {
+        async function captureScreen() {
+            console.log('[AR] captureScreen 호출됨');
             const arCanvas = document.querySelector('#canvas-container canvas');
-            if (!video || !arCanvas) return;
+            if (!video || !arCanvas) {
+                console.error('[AR] 비디오 또는 AR 캔버스를 찾을 수 없음', { video: !!video, arCanvas: !!arCanvas });
+                alert('카메라 또는 AR 화면을 준비할 수 없습니다.');
+                return;
+            }
 
-            // 플래시 효과
-            const flash = document.getElementById('capture-flash');
-            flash.classList.add('flash');
-            setTimeout(() => flash.classList.remove('flash'), 100);
+            try {
+                // 플래시 효과
+                const flash = document.getElementById('capture-flash');
+                flash.classList.add('flash');
+                setTimeout(() => flash.classList.remove('flash'), 100);
 
-            // 캡처 캔버스 생성
-            const canvas = document.createElement('canvas');
-            canvas.width = arCanvas.width;
-            canvas.height = arCanvas.height;
-            const ctx = canvas.getContext('2d');
+                // 캡처용 임시 캔버스 생성
+                const canvas = document.createElement('canvas');
+                canvas.width = arCanvas.width;
+                canvas.height = arCanvas.height;
+                const ctx = canvas.getContext('2d');
 
-            // 전면 카메라 미러링 처리
-            const isMirrored = currentFacing === 'user';
-            drawVideoCover(ctx, video, canvas.width, canvas.height, isMirrored);
+                // 전면 카메라 미러링 처리
+                const isMirrored = currentFacing === 'user';
+                drawVideoCover(ctx, video, canvas.width, canvas.height, isMirrored);
 
-            // AR 오버레이 합성
-            ctx.drawImage(arCanvas, 0, 0);
+                // AR 오버레이 합성
+                ctx.drawImage(arCanvas, 0, 0);
 
-            // === 워터마크 추가 (watermark.js 사용) ===
-            Watermark.apply(canvas, 'logo.png', {
-                opacity: 0.5,
-                sizeRatio: 0.15,
-                margin: 20
-            }).then(() => {
-                // Blob 생성 (워터마크 적용 후 호출)
-                canvas.toBlob((blob) => {
-                    lastCapturedBlob = blob;
+                // 즉시 활성화 (먼저 데이터화)
+                const dataUrl = canvas.toDataURL('image/png');
+                lastCapturedBlob = await (await fetch(dataUrl)).blob(); // Blob으로 변환하여 저장
 
-                    // 다운로드 버튼 활성화
-                    const downloadBtn = document.getElementById('btn-download');
-                    downloadBtn.style.opacity = '1';
-                    downloadBtn.style.pointerEvents = 'auto';
+                const downloadBtn = document.getElementById('btn-download');
+                downloadBtn.style.opacity = '1';
+                downloadBtn.style.pointerEvents = 'auto';
 
-                    showToast('캡처 완료!');
-                    console.log('[AR] 캡처 완료 (watermark.js 적용됨)');
-                }, 'image/png');
-            }).catch((err) => {
-                console.error('[AR] 워터마크 적용 실패:', err);
+                showToast('캡처 성공! 저장 버튼을 누르세요.');
 
-                // 워터마크 실패하더라도 캡처는 가능하게 처리
-                canvas.toBlob((blob) => {
-                    lastCapturedBlob = blob;
+                // 워터마크는 백그라운드에서 시도 (실패해도 캡처본은 유지)
+                try {
+                    const watermarkedCanvas = await Watermark.apply(canvas, 'logo.png', {
+                        opacity: 0.5,
+                        sizeRatio: 0.15,
+                        margin: 20
+                    });
+                    const wmUrl = watermarkedCanvas.toDataURL('image/png');
+                    lastCapturedBlob = await (await fetch(wmUrl)).blob();
+                    console.log('[AR] 워터마크 적용 완료');
+                } catch (wmErr) {
+                    console.warn('[AR] 워터마크 적용 실패, 원본 캡처 유지:', wmErr);
+                }
 
-                    const downloadBtn = document.getElementById('btn-download');
-                    downloadBtn.style.opacity = '1';
-                    downloadBtn.style.pointerEvents = 'auto';
-
-                    showToast('캡처 완료 (로고 제외)');
-                }, 'image/png');
-            });
+            } catch (err) {
+                console.error('[AR] 캡처 중 치명적 오류:', err);
+                alert('캡처 중 오류가 발생했습니다: ' + err.message);
+            }
         }
 
         // object-fit: cover 방식으로 비디오를 캔버스에 그리기
@@ -976,7 +978,10 @@
 
         // === 다운로드 ===
         function downloadCapture() {
-            if (!lastCapturedBlob) return;
+            if (!lastCapturedBlob) {
+                showToast('먼저 촬영(동그란 버튼)을 해주세요!');
+                return;
+            }
 
             const filename = 'ar-capture-' + Date.now() + '.png';
             const url = URL.createObjectURL(lastCapturedBlob);
@@ -986,7 +991,7 @@
             a.click();
             URL.revokeObjectURL(url);
 
-            showToast('저장되었습니다');
+            showToast('갤러리에 저장되었습니다');
         }
 
         // === 리사이즈 ===
