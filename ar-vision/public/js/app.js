@@ -47,7 +47,9 @@
     const $cameraVideo = document.getElementById('camera-video');
     const $arCanvas = document.getElementById('ar-canvas');
     const $arControls = document.getElementById('ar-controls');
-    const $arCaptureBtn = document.getElementById('ar-capture-btn');
+
+    // 현재 활성화된 탭
+    let currentTab = 'original';
 
     // ========== 초기화 ==========
     function init() {
@@ -66,8 +68,7 @@
         $processBtn.addEventListener('click', processImage);
         $resetBtn.addEventListener('click', resetSelection);
         $newImageBtn.addEventListener('click', resetAll);
-        $downloadChromaBtn.addEventListener('click', downloadChromaImage);
-        $arCaptureBtn.addEventListener('click', captureARScreenshot);
+        $downloadChromaBtn.addEventListener('click', handleDownload);
 
         // 탭 이벤트
         $tabBtns.forEach(btn => {
@@ -240,6 +241,8 @@
 
     // ========== 탭 전환 ==========
     function switchTab(tabName) {
+        currentTab = tabName;
+        
         // 탭 버튼 활성화
         $tabBtns.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tab === tabName);
@@ -286,6 +289,16 @@
     }
 
     // ========== 다운로드 ==========
+    function handleDownload() {
+        console.log('[App] 다운로드 버튼 클릭, 현재 탭:', currentTab);
+        
+        if (currentTab === 'ar') {
+            captureARScreenshot();
+        } else {
+            downloadChromaImage();
+        }
+    }
+
     function captureARScreenshot() {
         if (!arDisplay) {
             console.error('[App] AR Display가 없습니다');
