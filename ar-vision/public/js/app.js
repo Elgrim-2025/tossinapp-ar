@@ -292,7 +292,7 @@
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = results.chroma.width;
         tempCanvas.height = results.chroma.height;
-        const ctx = tempCanvas.getContext('2d', { willReadFrequently: true });
+        const ctx = tempCanvas.getContext('2d');
 
         ctx.drawImage(results.chroma, 0, 0);
 
@@ -301,34 +301,17 @@
         logo.onload = () => {
             console.log('[App] 로고 로드 성공, 워터마크 추가 중...');
             
-            const logoSize = Math.min(tempCanvas.width, tempCanvas.height) * 0.1;
-            const margin = 15;
+            const logoSize = Math.min(tempCanvas.width, tempCanvas.height) * 0.15;
+            const margin = 20;
             const logoX = tempCanvas.width - logoSize - margin;
             const logoY = tempCanvas.height - logoSize - margin;
 
+            console.log('[App] 캔버스 크기:', tempCanvas.width, 'x', tempCanvas.height);
             console.log('[App] 로고 위치:', { logoX, logoY, logoSize });
 
-            const logoCanvas = document.createElement('canvas');
-            logoCanvas.width = logoSize;
-            logoCanvas.height = logoSize;
-            const logoCtx = logoCanvas.getContext('2d');
-            
-            logoCtx.drawImage(logo, 0, 0, logoSize, logoSize);
-            
-            const imageData = logoCtx.getImageData(0, 0, logoSize, logoSize);
-            const data = imageData.data;
-            
-            for (let i = 0; i < data.length; i += 4) {
-                const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-                data[i] = gray;
-                data[i + 1] = gray;
-                data[i + 2] = gray;
-                data[i + 3] = data[i + 3] * 0.45;
-            }
-            
-            logoCtx.putImageData(imageData, 0, 0);
-            
-            ctx.drawImage(logoCanvas, logoX, logoY);
+            ctx.globalAlpha = 0.4;
+            ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+            ctx.globalAlpha = 1.0;
 
             console.log('[App] 워터마크 적용 완료, 이미지 저장 중...');
 
