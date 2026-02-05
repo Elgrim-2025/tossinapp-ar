@@ -393,10 +393,27 @@
             visibility: visible;
             transform: translateX(-50%) translateY(0);
         }
+
+        /* 실시간 워터마크 */
+        .rt-watermark {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 80px;
+            height: 80px;
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 150;
+            /* UI 버튼들(100)보다 위에 배치 */
+            object-fit: contain;
+        }
     </style>
 </head>
 
 <body>
+    <!-- 실시간 워터마크 안내용 -->
+    <img src="logo.png" alt="watermark" class="rt-watermark">
+
     <!-- 로딩 화면 -->
     <div id="loading-screen">
         <div class="loading-spinner"></div>
