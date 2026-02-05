@@ -342,32 +342,19 @@
 
     function downloadCapturedScreenshot() {
         if (!capturedScreenshot) return;
-        console.log('[App] AR 스크린샷 워터마크 합성 시작');
 
         const ctx = capturedScreenshot.getContext('2d');
-        const logoSize = Math.min(capturedScreenshot.width, capturedScreenshot.height) * 0.25;
-        const margin = 30;
+        const logoSize = Math.min(capturedScreenshot.width, capturedScreenshot.height) * 0.20;
+        const margin = 20;
         const logoX = capturedScreenshot.width - logoSize - margin;
         const logoY = capturedScreenshot.height - logoSize - margin;
 
-        // [DEBUG] 공격적인 그리기 테스트 [App v3]
-        ctx.save();
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 20;
-        ctx.strokeRect(0, 0, capturedScreenshot.width, capturedScreenshot.height);
-        ctx.beginPath();
-        ctx.moveTo(0, 0); ctx.lineTo(capturedScreenshot.width, capturedScreenshot.height);
-        ctx.moveTo(capturedScreenshot.width, 0); ctx.lineTo(0, capturedScreenshot.height);
-        ctx.stroke();
-        ctx.restore();
-
-        console.log('[App v3] 워터마크 위치:', { logoX, logoY, logoSize, canvasW: capturedScreenshot.width, canvasH: capturedScreenshot.height });
-
         const logo = new Image();
         logo.onload = () => {
-            console.log('[App] 워터마크 이미지 로드 성공, 그리기');
-            ctx.globalAlpha = 1.0;
+            ctx.save();
+            ctx.globalAlpha = 0.8;
             ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+            ctx.restore();
             saveBlob();
         };
 
