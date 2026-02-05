@@ -908,7 +908,7 @@
             ctx.drawImage(arCanvas, 0, 0);
 
             // === 워터마크 추가 (watermark.js 사용) ===
-            Watermark.apply(canvas, 'el-logo.png', {
+            Watermark.apply(canvas, 'logo.png', {
                 opacity: 0.5,
                 sizeRatio: 0.15,
                 margin: 20
@@ -924,6 +924,19 @@
 
                     showToast('캡처 완료!');
                     console.log('[AR] 캡처 완료 (watermark.js 적용됨)');
+                }, 'image/png');
+            }).catch((err) => {
+                console.error('[AR] 워터마크 적용 실패:', err);
+
+                // 워터마크 실패하더라도 캡처는 가능하게 처리
+                canvas.toBlob((blob) => {
+                    lastCapturedBlob = blob;
+
+                    const downloadBtn = document.getElementById('btn-download');
+                    downloadBtn.style.opacity = '1';
+                    downloadBtn.style.pointerEvents = 'auto';
+
+                    showToast('캡처 완료 (로고 제외)');
                 }, 'image/png');
             });
         }
