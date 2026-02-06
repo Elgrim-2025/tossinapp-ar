@@ -411,7 +411,7 @@
 
 <body>
     <!-- 실시간 워터마크 안내용 -->
-    <img src="el-logo.png" alt="watermark" class="rt-watermark" onerror="this.src='logo.png'">
+    <img src="logo.png" alt="watermark" class="rt-watermark" onerror="this.src='el-logo.png'">
 
     <!-- 로딩 화면 -->
     <div id="loading-screen">
@@ -946,8 +946,8 @@
                 const watermarkObj = window.Watermark || (typeof Watermark !== 'undefined' ? Watermark : null);
 
                 if (watermarkObj && watermarkObj.apply) {
-                    // Watermark 유틸리티 사용
-                    await watermarkObj.apply(canvas, './el-logo.png', {
+                    // Watermark 유틸리티 사용 (logo.png)
+                    await watermarkObj.apply(canvas, './logo.png', {
                         opacity: 0.8,
                         sizeRatio: 0.20,
                         margin: 30

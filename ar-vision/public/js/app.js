@@ -64,7 +64,7 @@
 
         // 워터마크 이미지 미리 로드
         watermarkImage = new Image();
-        const logoPath = 'el-logo.png';
+        const logoPath = 'logo.png';
         watermarkImage.src = logoPath;
         watermarkImage.onload = () => console.log('[App] 워터마크 이미지 프리로드 완료:', logoPath);
         watermarkImage.onerror = () => console.error('[App] 워터마크 이미지 프리로드 실패:', logoPath);
@@ -356,7 +356,7 @@
         console.log('[App] 스크린샷 저장 프로세스 시작');
 
         try {
-            const logoSrc = './el-logo.png';
+            const logoSrc = './logo.png';
             const watermarkObj = window.Watermark;
 
             if (!watermarkObj || !watermarkObj.apply) {
@@ -409,7 +409,7 @@
         console.log('[App] 크로마키 이미지 저장 시작');
 
         try {
-            const logoSrc = './el-logo.png';
+            const logoSrc = './logo.png';
             const watermarkObj = window.Watermark;
 
             if (watermarkObj && watermarkObj.apply) {

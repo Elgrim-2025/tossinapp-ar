@@ -1,13 +1,14 @@
 /**
- * Watermark Utility - 강화판
+ * Watermark Utility - 강화판 (logo.png 사용)
  */
 window.Watermark = {
     apply: function (canvas, logoUrl, options = {}) {
         return new Promise((resolve) => {
+            const src = logoUrl || 'logo.png';
             const defaults = {
-                opacity: 0.8,
-                margin: 30,
-                sizeRatio: 0.20
+                opacity: 0.9,
+                margin: 50,
+                sizeRatio: 0.25
             };
             const config = { ...defaults, ...options };
             const ctx = canvas.getContext('2d');
@@ -17,9 +18,11 @@ window.Watermark = {
                 return;
             }
 
-            // === 디버그 표식: 왼쪽 하단 노란색 점 ===
-            ctx.fillStyle = '#FFFF00';
-            ctx.fillRect(10, canvas.height - 20, 10, 10);
+            // === [초강력 디버그 표식] ===
+            // 왼쪽 상단에 큰 핫핑크 사각형
+            const debugSize = Math.min(canvas.width, canvas.height) * 0.1;
+            ctx.fillStyle = '#FF00FF';
+            ctx.fillRect(20, 20, debugSize, debugSize);
 
             const logo = new Image();
             logo.crossOrigin = "anonymous";
@@ -34,20 +37,17 @@ window.Watermark = {
                 ctx.drawImage(logo, x, y, logoSize, logoSize);
                 ctx.restore();
 
-                console.log('[Watermark] 합성 완료');
                 resolve(canvas);
             };
 
             logo.onerror = () => {
-                console.warn('[Watermark] 로드 실패, 텍스트 출력');
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-                ctx.font = 'bold 24px sans-serif';
-                ctx.textAlign = 'right';
-                ctx.fillText('EL-LOGO', canvas.width - config.margin, canvas.height - config.margin);
+                ctx.fillStyle = 'red';
+                const s = 100;
+                ctx.fillRect(canvas.width - s - 50, canvas.height - s - 50, s, s);
                 resolve(canvas);
             };
 
-            logo.src = logoUrl + (logoUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+            logo.src = src + '?t=' + Date.now();
         });
     }
 };
