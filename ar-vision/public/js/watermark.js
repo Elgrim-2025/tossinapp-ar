@@ -1,7 +1,7 @@
 /**
  * Watermark - 이미지에 워터마크를 추가하는 유틸리티
  */
-const Watermark = {
+window.Watermark = {
     /**
      * 캔버스에 워터마크 적용
      * @param {HTMLCanvasElement} canvas - 원본 캔버스

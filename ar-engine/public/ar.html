@@ -942,14 +942,20 @@
 
                 console.log('[AR] 합성 완료, 워터마크 적용 시작...');
 
-                // Watermark 유틸리티 사용
-                await Watermark.apply(canvas, './el-logo.png', {
-                    opacity: 0.8,
-                    sizeRatio: 0.20,
-                    margin: 30
-                });
+                // Watermark 유틸리티 존재 여부 확인
+                const watermarkObj = window.Watermark || (typeof Watermark !== 'undefined' ? Watermark : null);
 
-                console.log('[AR] 워터마크 적용 프로세스 완료');
+                if (watermarkObj && watermarkObj.apply) {
+                    // Watermark 유틸리티 사용
+                    await watermarkObj.apply(canvas, './el-logo.png', {
+                        opacity: 0.8,
+                        sizeRatio: 0.20,
+                        margin: 30
+                    });
+                    console.log('[AR] 워터마크 적용 프로세스 완료');
+                } else {
+                    console.warn('[AR] Watermark utility is not defined. Skipping watermark.');
+                }
 
                 // 최후의 데이터를 Blob으로 변환
                 canvas.toBlob((blob) => {

@@ -361,7 +361,16 @@
             // Watermark 유틸리티 사용 (opacity: 0.8, sizeRatio: 0.2로 설정)
             // 'el-logo.png' 경로가 안될 경우를 대비해 절대경로 스타일로도 시도 가능
             const logoSrc = './el-logo.png';
-            const finalCanvas = await Watermark.apply(capturedScreenshot, logoSrc, {
+
+            // 전역 객체 참조 보장
+            const watermarkObj = window.Watermark || (typeof Watermark !== 'undefined' ? Watermark : null);
+
+            if (!watermarkObj || !watermarkObj.apply) {
+                console.error('[App] Watermark utility not found. Saving without watermark.');
+                throw new Error('Watermark utility is not defined');
+            }
+
+            const finalCanvas = await watermarkObj.apply(capturedScreenshot, logoSrc, {
                 opacity: 0.8,
                 sizeRatio: 0.20,
                 margin: 30
@@ -406,7 +415,13 @@
 
         try {
             const logoSrc = './el-logo.png';
-            const finalCanvas = await Watermark.apply(results.chroma, logoSrc, {
+
+            const watermarker = window.Watermark || Watermark;
+            if (typeof watermarker === 'undefined' || !watermarker.apply) {
+                throw new Error('Watermark utility is not loaded yet.');
+            }
+
+            const finalCanvas = await watermarker.apply(results.chroma, logoSrc, {
                 opacity: 0.8,
                 sizeRatio: 0.20,
                 margin: 30
