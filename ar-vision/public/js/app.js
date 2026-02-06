@@ -353,55 +353,50 @@
     async function downloadCapturedScreenshot() {
         if (!capturedScreenshot) return;
 
-        console.log('[App] 스크린샷 저장 시작 (Watermark 적용)');
+        console.log('[App] 스크린샷 저장 프로세스 시작');
 
         try {
-            console.log('[App] 워터마크 적용 대상 캔버스 크기:', capturedScreenshot.width, 'x', capturedScreenshot.height);
-
-            // Watermark 유틸리티 사용 (opacity: 0.8, sizeRatio: 0.2로 설정)
-            // 'el-logo.png' 경로가 안될 경우를 대비해 절대경로 스타일로도 시도 가능
             const logoSrc = './el-logo.png';
-
-            // 전역 객체 참조 보장
-            const watermarkObj = window.Watermark || (typeof Watermark !== 'undefined' ? Watermark : null);
+            const watermarkObj = window.Watermark;
 
             if (!watermarkObj || !watermarkObj.apply) {
-                console.error('[App] Watermark utility not found. Saving without watermark.');
-                throw new Error('Watermark utility is not defined');
+                console.error('[App] Watermark utility missing!');
+                throw new Error('Watermark utility is not loaded');
             }
 
+            // 워터마크 적용 (캔버스에 직접 그려짐)
             const finalCanvas = await watermarkObj.apply(capturedScreenshot, logoSrc, {
-                opacity: 0.8,
-                sizeRatio: 0.20,
-                margin: 30
+                opacity: 0.85,
+                sizeRatio: 0.22,
+                margin: 40
             });
 
-            console.log('[App] 워터마크 적용 완료, 블롭 변환 중...');
+            console.log('[App] 워터마크 합성 단계 완료, 파일 변환 중...');
 
             finalCanvas.toBlob((blob) => {
                 if (!blob) {
-                    console.error('[App] 블롭 생성 실패');
+                    alert('파일 생성에 실패했습니다.');
                     return;
                 }
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = 'ar-capture-' + Date.now() + '.png';
-                document.body.appendChild(a); // iOS 지원을 위해 body에 추가
+                document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                console.log('[App] 저장 완료');
+                console.log('[App] 최종 저장 완료');
             }, 'image/png');
 
         } catch (error) {
-            console.error('[App] 워터마크 적용 중 오류 발생:', error);
-            // 오류 시 워터마크 없이 저장 시도
+            console.error('[App] 워터마크 적용 중 오류:', error);
+            // 오류 발생 시에도 캡처본은 저장되도록 보장
             capturedScreenshot.toBlob((blob) => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'ar-capture-fallback-' + Date.now() + '.png';
+                a.download = 'ar-capture-fallback.png';
                 a.click();
                 URL.revokeObjectURL(url);
             }, 'image/png');
@@ -411,23 +406,21 @@
     async function downloadChromaImage() {
         if (!results.chroma) return;
 
-        console.log('[App] 크로마키 이미지 저장 시작 (Watermark 적용)');
+        console.log('[App] 크로마키 이미지 저장 시작');
 
         try {
             const logoSrc = './el-logo.png';
+            const watermarkObj = window.Watermark;
 
-            const watermarker = window.Watermark || Watermark;
-            if (typeof watermarker === 'undefined' || !watermarker.apply) {
-                throw new Error('Watermark utility is not loaded yet.');
+            if (watermarkObj && watermarkObj.apply) {
+                await watermarkObj.apply(results.chroma, logoSrc, {
+                    opacity: 0.85,
+                    sizeRatio: 0.22,
+                    margin: 40
+                });
             }
 
-            const finalCanvas = await watermarker.apply(results.chroma, logoSrc, {
-                opacity: 0.8,
-                sizeRatio: 0.20,
-                margin: 30
-            });
-
-            finalCanvas.toBlob((blob) => {
+            results.chroma.toBlob((blob) => {
                 if (!blob) return;
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -437,17 +430,16 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                console.log('[App] 크로마키 이미지 저장 완료');
+                console.log('[App] 저장 완료');
             }, 'image/png');
 
         } catch (error) {
             console.error('[App] 크로마키 워터마크 적용 실패:', error);
-            // 폴백: 원본 크로마키 이미지 저장
             results.chroma.toBlob((blob) => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'chroma-fallback-' + Date.now() + '.png';
+                a.download = 'chroma-error.png';
                 a.click();
                 URL.revokeObjectURL(url);
             }, 'image/png');
