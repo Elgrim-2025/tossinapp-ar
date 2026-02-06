@@ -940,30 +940,16 @@
                 // AR 오버레이 합성
                 ctx.drawImage(arCanvas, 0, 0);
 
-                // 워터마크 로고 합성
-                const logo = new Image();
-                const logoPromise = new Promise((resolve) => {
-                    logo.onload = () => {
-                        const logoSize = Math.min(canvas.width, canvas.height) * 0.20;
-                        const margin = 20;
-                        const lx = canvas.width - logoSize - margin;
-                        const ly = canvas.height - logoSize - margin;
+                console.log('[AR] 합성 완료, 워터마크 적용 시작...');
 
-                        ctx.save();
-                        ctx.globalAlpha = 0.8;
-                        ctx.drawImage(logo, lx, ly, logoSize, logoSize);
-                        ctx.restore();
-                        console.log('[AR] 워터마크 합성 완료');
-                        resolve();
-                    };
-                    logo.onerror = () => {
-                        console.warn('[AR] el-logo.png 로드 실패');
-                        resolve();
-                    };
-                    logo.src = 'el-logo.png';
+                // Watermark 유틸리티 사용
+                await Watermark.apply(canvas, './el-logo.png', {
+                    opacity: 0.8,
+                    sizeRatio: 0.20,
+                    margin: 30
                 });
 
-                await logoPromise;
+                console.log('[AR] 워터마크 적용 프로세스 완료');
 
                 // 최후의 데이터를 Blob으로 변환
                 canvas.toBlob((blob) => {
